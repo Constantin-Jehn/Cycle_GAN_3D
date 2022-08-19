@@ -9,6 +9,9 @@ from models import create_model
 from utils.visualizer import Visualizer
 from test import inference
 
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["taskset"] = "21-40"
+
 if __name__ == '__main__':
 
     # -----  Loading the init options -----
