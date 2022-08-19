@@ -178,6 +178,8 @@ def resample_sitk_image(sitk_image, spacing=None, interpolator=None, fill_value=
 
     resample_filter = sitk.ResampleImageFilter()
 
+    
+    """
     resampled_sitk_image = resample_filter.Execute(sitk_image,
                                                    new_size,
                                                    sitk.Transform(),
@@ -187,6 +189,15 @@ def resample_sitk_image(sitk_image, spacing=None, interpolator=None, fill_value=
                                                    orig_direction,
                                                    fill_value,
                                                    orig_pixelid)
+    """
+    #fix
+    resample_filter.SetSize(new_size)
+    resample_filter.SetInterpolator(sitk_interpolator)
+    resample_filter.SetOutputOrigin(orig_origin)
+    resample_filter.SetOutputSpacing(new_spacing)
+    resample_filter.SetOutputDirection(orig_direction)
+    resample_filter.SetDefaultPixelValue(fill_value)
+    resampled_sitk_image = resample_filter.Execute(sitk_image)
 
     return resampled_sitk_image
 
