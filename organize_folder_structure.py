@@ -145,7 +145,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--images', default='./Data_folder/Image_0', help='path to the images a (early frames)')
 parser.add_argument('--labels', default='./Data_folder/SVRTK_output', help='path to the images b (late frames)')
 parser.add_argument('--split', default=10, help='number of images for testing')
-parser.add_argument('--resolution', default=(1.6,1.6,1.6), help='new resolution to resample the all data')
+parser.add_argument('--resolution', default=(1.0,1.0,1.0), help='new resolution to resample the all data')
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -223,8 +223,9 @@ if __name__ == "__main__":
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
-        # image = Align(image, reference_image)
-        # label = Align(label, reference_image)
+        #uncomment the Alignment
+        image = Align(image, reference_image)
+        label = Align(label, reference_image)
 
         label_directory = os.path.join(str(save_directory_labels), str(i) + '.nii')
         image_directory = os.path.join(str(save_directory_images), str(i) + '.nii')
