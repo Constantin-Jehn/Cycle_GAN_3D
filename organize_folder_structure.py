@@ -188,8 +188,9 @@ if __name__ == "__main__":
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
-        # image = Align(image, reference_image)
-        # label = Align(label, reference_image)
+        #uncomment the Alignment
+        image = Align(image, reference_image)
+        label = Align(label, reference_image)
 
         label_directory = os.path.join(str(save_directory_labels), str(i) + '.nii')
         image_directory = os.path.join(str(save_directory_images), str(i) + '.nii')
