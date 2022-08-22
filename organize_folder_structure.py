@@ -144,7 +144,7 @@ def Registration(image, label):
 parser = argparse.ArgumentParser()
 parser.add_argument('--images', default='./Data_folder/Image_0', help='path to the images a (early frames)')
 parser.add_argument('--labels', default='./Data_folder/SVRTK_output', help='path to the images b (late frames)')
-parser.add_argument('--split', default=10, help='number of images for testing')
+parser.add_argument('--split', default=25, help='number of images for testing')
 parser.add_argument('--resolution', default=(1.0,1.0,1.0), help='new resolution to resample the all data')
 args = parser.parse_args()
 
