@@ -1,5 +1,8 @@
 
 import os
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 import shutil
 from time import time
 import re
@@ -131,21 +134,34 @@ def Registration(image, label):
     # Don't optimize in-place, we would possibly like to run this cell multiple times.
     registration_method.SetInitialTransform(initial_transform, inPlace=False)
 
+    """
     final_transform = registration_method.Execute(sitk.Cast(fixed_image, sitk.sitkFloat32),
                                                   sitk.Cast(moving_image, sitk.sitkFloat32))
-
+    """
+    #for a minute do an identity transform
+    final_transform = sitk.TranslationTransform(3,[0]*3)
     image = sitk.Resample(image, fixed_image, final_transform, sitk.sitkLinear, 0.0,
                                      moving_image.GetPixelID())
 
     return image, label
+
+def Resample(image,label):
+    #resamples image to same shape as label
+    fixed_image = label
+    moving_image = image
+    identitiy_transform = sitk.TranslationTransform(3,[0]*3)
+    image = sitk.Resample(image, fixed_image, identitiy_transform, sitk.sitkLinear, 0.0,
+                                     moving_image.GetPixelID())
+    return image, label
+
 
 
 #change default to folders
 parser = argparse.ArgumentParser()
 parser.add_argument('--images', default='./Data_folder/Image_0', help='path to the images a (early frames)')
 parser.add_argument('--labels', default='./Data_folder/SVRTK_output', help='path to the images b (late frames)')
-parser.add_argument('--split', default=100, help='number of images for testing')
-parser.add_argument('--resolution', default=(1.3,1.3,1.3), help='new resolution to resample the all data')
+parser.add_argument('--split', default=50, help='number of images for testing')
+parser.add_argument('--resolution', default=(1.0,1.0,1.0), help='new resolution to resample the all data')
 args = parser.parse_args()
 
 if __name__ == "__main__":
@@ -182,15 +198,15 @@ if __name__ == "__main__":
         label = sitk.ReadImage(b)
         image = sitk.ReadImage(a)
 
-        #label, reference_image = Registration(label, reference_image)
-        #image, label = Registration(image, label)
-
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
         #uncomment the Alignment
         image = Align(image, reference_image)
         label = Align(label, reference_image)
+
+        label, reference_image = Resample(label, reference_image)
+        image, label = Resample(image, label)
 
         label_directory = os.path.join(str(save_directory_labels), str(i) + '.nii')
         image_directory = os.path.join(str(save_directory_images), str(i) + '.nii')
@@ -217,8 +233,8 @@ if __name__ == "__main__":
         label = sitk.ReadImage(b)
         image = sitk.ReadImage(a)
 
-        #label, reference_image = Registration(label, reference_image)
-        #image, label = Registration(image, label)
+        label, reference_image = Registration(label, reference_image)
+        image, label = Registration(image, label)
 
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
@@ -226,6 +242,9 @@ if __name__ == "__main__":
         #uncomment the Alignment
         image = Align(image, reference_image)
         label = Align(label, reference_image)
+
+        label, reference_image = Resample(label, reference_image)
+        image, label = Resample(image, label)
 
         label_directory = os.path.join(str(save_directory_labels), str(i) + '.nii')
         image_directory = os.path.join(str(save_directory_images), str(i) + '.nii')
