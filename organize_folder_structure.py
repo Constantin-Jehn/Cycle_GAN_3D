@@ -182,8 +182,8 @@ if __name__ == "__main__":
         label = sitk.ReadImage(b)
         image = sitk.ReadImage(a)
 
-        label, reference_image = Registration(label, reference_image)
-        image, label = Registration(image, label)
+        #label, reference_image = Registration(label, reference_image)
+        #image, label = Registration(image, label)
 
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
@@ -217,8 +217,8 @@ if __name__ == "__main__":
         label = sitk.ReadImage(b)
         image = sitk.ReadImage(a)
 
-        label, reference_image = Registration(label, reference_image)
-        image, label = Registration(image, label)
+        #label, reference_image = Registration(label, reference_image)
+        #image, label = Registration(image, label)
 
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
