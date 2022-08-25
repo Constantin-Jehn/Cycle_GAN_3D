@@ -28,7 +28,7 @@ class BaseOptions():
         parser.add_argument('--netG', type=str, default='resnet_9blocks', help='selects model to use for netG. Look on Networks3D to see the all list')
 
         parser.add_argument('--gpu_ids', default='0,', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
-        parser.add_argument('--name', type=str, default='aligned_data', help='name of the experiment. It decides where to store samples and models')
+        parser.add_argument('--name', type=str, default='improved_prepr_24_08', help='name of the experiment. It decides where to store samples and models')
         parser.add_argument('--model', type=str, default='cycle_gan', help='chooses which model to use. cycle_gan')
 
         parser.add_argument('--which_direction', type=str, default='AtoB', help='AtoB or BtoA (keep it AtoB)')
