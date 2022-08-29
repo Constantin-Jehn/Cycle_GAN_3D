@@ -1,6 +1,8 @@
 
 import os
 
+from matplotlib.transforms import Transform
+
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import shutil
@@ -11,6 +13,7 @@ import numpy as np
 import SimpleITK as sitk
 import scipy.ndimage as ndimage
 from utils.NiftiDataset import *
+import torchio as tio
 
 
 def numericalSort(value):
@@ -41,16 +44,37 @@ def Align(image, reference):
     image_array = sitk.GetArrayFromImage(image)
 
     label_origin = reference.GetOrigin()
-    label_direction = reference.GetDirection()
-    label_spacing = reference.GetSpacing()
+    #label_direction = reference.GetDirection()
+    #label_spacing = reference.GetSpacing()
 
     image = sitk.GetImageFromArray(image_array)
     image.SetOrigin(label_origin)
-    image.SetSpacing(label_spacing)
-    image.SetDirection(label_direction)
+    #image.SetSpacing(label_spacing)
+    #image.SetDirection(label_direction)
 
     return image
 
+def Align_by_Offset(image, label, reference):
+    ref_origin = reference.GetOrigin()
+    label_origin = label.GetOrigin()
+    image_origin = image.GetOrigin()
+
+    offset = np.array(ref_origin) - np.array(label_origin)
+
+    #label_new_origin = np.array(label_origin) - offset
+    label.SetOrigin(ref_origin)
+
+    image_new_origin = np.array(image_origin) + offset
+    image.SetOrigin(tuple(image_new_origin))
+
+    """
+    in_transform = sitk.TranslationTransform(3,list(offset))
+    label = sitk.Resample(label, label, lin_transform, sitk.sitkLinear, 0.0, label.GetPixelID())
+
+    image = sitk.Resample(image, image,lin_transform, sitk.sitkLinear, 0.0, image.GetPixelID())
+    """
+
+    return image, label
 
 def CropBackground(image, label):
     size_new = (240, 240, 120)
@@ -154,13 +178,24 @@ def Resample(image,label):
                                      moving_image.GetPixelID())
     return image, label
 
+def Crop_to_shape(image:sitk.Image, reference:sitk.Image):
+    reference_size = reference.GetSize()
+    sitk.WriteImage(image, "./Data_folder/tmp.nii.gz")
+    image_tio = tio.ScalarImage("./Data_folder/tmp.nii.gz")
+    cropper = tio.CropOrPad(target_shape=reference_size)
+    image_cropped = cropper(image_tio)
+    image = image_cropped.as_sitk()
+
+    return image
+
+
 
 
 #change default to folders
 parser = argparse.ArgumentParser()
 parser.add_argument('--images', default='./Data_folder/Image_0', help='path to the images a (early frames)')
 parser.add_argument('--labels', default='./Data_folder/SVRTK_output', help='path to the images b (late frames)')
-parser.add_argument('--split', default=4, help='number of images for testing')
+parser.add_argument('--split', default=0, help='number of images for testing')
 parser.add_argument('--resolution', default=(1.0,1.0,1.0), help='new resolution to resample the all data')
 args = parser.parse_args()
 
@@ -205,11 +240,16 @@ if __name__ == "__main__":
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
         #uncomment the Alignment
-        image = Align(image, reference_image)
-        label = Align(label, reference_image)
-
+        image,label = Align_by_Offset(image,label,reference_image)
+        #image = Align(image, reference_image)
+        #label = Align(label, reference_image)
+        
+        """"
         label, reference_image = Resample(label, reference_image)
         image, label = Resample(image, label)
+        """
+        label = Crop_to_shape(label, reference_image)
+        image = Crop_to_shape(image, reference_image)
 
         label_directory = os.path.join(str(save_directory_labels), os.path.basename(list_labels[int(args.split)+i]))
         image_directory = os.path.join(str(save_directory_images), os.path.basename(list_images[int(args.split)+i]))
