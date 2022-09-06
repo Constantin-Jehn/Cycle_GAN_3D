@@ -44,18 +44,19 @@ def Align(image, reference):
     image_array = sitk.GetArrayFromImage(image)
 
     label_origin = reference.GetOrigin()
-    #label_direction = reference.GetDirection()
-    #label_spacing = reference.GetSpacing()
+    label_direction = reference.GetDirection()
+    label_spacing = reference.GetSpacing()
 
     image = sitk.GetImageFromArray(image_array)
     image.SetOrigin(label_origin)
-    #image.SetSpacing(label_spacing)
-    #image.SetDirection(label_direction)
+    image.SetSpacing(label_spacing)
+    image.SetDirection(label_direction)
 
     return image
 
 def Align_by_Offset(image, label, reference):
     ref_origin = reference.GetOrigin()
+    ref_direction = reference.GetDirection()
     label_origin = label.GetOrigin()
     image_origin = image.GetOrigin()
 
@@ -63,9 +64,11 @@ def Align_by_Offset(image, label, reference):
 
     #label_new_origin = np.array(label_origin) - offset
     label.SetOrigin(ref_origin)
+    #label.SetDirection(ref_direction)
 
     image_new_origin = np.array(image_origin) + offset
     image.SetOrigin(tuple(image_new_origin))
+    #image.SetDirection(ref_direction)
 
     """
     in_transform = sitk.TranslationTransform(3,list(offset))
@@ -178,15 +181,40 @@ def Resample(image,label):
                                      moving_image.GetPixelID())
     return image, label
 
-def Crop_to_shape(image:sitk.Image, reference:sitk.Image):
-    reference_size = reference.GetSize()
+def Crop_to_shape(image:sitk.Image, reference_size:tuple):
+    """
+    brings images to same shape by cropping or padding
+
+    Args:
+        image (sitk.Image): input image
+        reference (sitk.Image): reference iamge
+
+    Returns:
+        sitk.Image: Preprocessed input image
+    """
+    #reference_size = reference.GetSize()
     sitk.WriteImage(image, "./Data_folder/tmp.nii.gz")
     image_tio = tio.ScalarImage("./Data_folder/tmp.nii.gz")
+
+    #to_canonical = tio.transforms.ToCanonical()
+    #image = to_canonical(image)
+
     cropper = tio.CropOrPad(target_shape=reference_size)
     image_cropped = cropper(image_tio)
     image = image_cropped.as_sitk()
 
     return image
+
+
+def GetMaxShape(list_labels:list):
+    reference_size = np.zeros(3)
+    for i in range(len(list_labels)):
+        label = sitk.ReadImage(list_labels[i])
+        label_size = np.array(label.GetSize())
+        tmp = np.vstack((reference_size,label_size))
+        reference_size = np.max(tmp,axis=0)
+    return tuple(reference_size.astype(int))
+
 
 
 
@@ -195,7 +223,7 @@ def Crop_to_shape(image:sitk.Image, reference:sitk.Image):
 parser = argparse.ArgumentParser()
 parser.add_argument('--images', default='./Data_folder/Image_0', help='path to the images a (early frames)')
 parser.add_argument('--labels', default='./Data_folder/SVRTK_output', help='path to the images b (late frames)')
-parser.add_argument('--split', default=0, help='number of images for testing')
+parser.add_argument('--split', default=40, help='number of images for testing')
 parser.add_argument('--resolution', default=(1.0,1.0,1.0), help='new resolution to resample the all data')
 args = parser.parse_args()
 
@@ -204,8 +232,11 @@ if __name__ == "__main__":
     list_images = lstFiles(args.images)
     list_labels = lstFiles(args.labels)
 
+    ref_size = GetMaxShape(list_labels)
+
     reference_image = list_labels[0]    # setting a reference image to have all data in the same coordinate system
     reference_image = sitk.ReadImage(reference_image)
+    reference_image = Crop_to_shape(reference_image, ref_size)
     reference_image = resample_sitk_image(reference_image, spacing=args.resolution, interpolator='linear')
 
     if not os.path.isdir('./Data_folder/train'):
@@ -240,7 +271,7 @@ if __name__ == "__main__":
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
         #uncomment the Alignment
-        image,label = Align_by_Offset(image,label,reference_image)
+        #image,label = Align_by_Offset(image,label,reference_image)
         #image = Align(image, reference_image)
         #label = Align(label, reference_image)
         
@@ -248,9 +279,17 @@ if __name__ == "__main__":
         label, reference_image = Resample(label, reference_image)
         image, label = Resample(image, label)
         """
-        label = Crop_to_shape(label, reference_image)
-        image = Crop_to_shape(image, reference_image)
+        
 
+        #uncomment the Alignment
+        image,label = Align_by_Offset(image,label,reference_image)
+        #image = Align(image, reference_image)
+        #label = Align(label, reference_image)
+
+        label = Crop_to_shape(label, reference_image.GetSize())
+        image = Crop_to_shape(image, reference_image.GetSize())
+
+        #keep filenames for referencing later on
         label_directory = os.path.join(str(save_directory_labels), os.path.basename(list_labels[int(args.split)+i]))
         image_directory = os.path.join(str(save_directory_images), os.path.basename(list_images[int(args.split)+i]))
 
@@ -285,11 +324,15 @@ if __name__ == "__main__":
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
         #uncomment the Alignment
-        image = Align(image, reference_image)
-        label = Align(label, reference_image)
+        image,label = Align_by_Offset(image,label,reference_image)
+        #image = Align(image, reference_image)
+        #label = Align(label, reference_image)
 
-        label, reference_image = Resample(label, reference_image)
-        image, label = Resample(image, label)
+        label = Crop_to_shape(label, reference_image.GetSize())
+        image = Crop_to_shape(image, reference_image.GetSize())
+
+        #label, reference_image = Resample(label, reference_image)
+        #image, label = Resample(image, label)
 
         label_directory = os.path.join(str(save_directory_labels), os.path.basename(list_labels[i]))
         image_directory = os.path.join(str(save_directory_images), os.path.basename(list_images[i]))
