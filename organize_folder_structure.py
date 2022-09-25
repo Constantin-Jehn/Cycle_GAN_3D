@@ -161,12 +161,12 @@ def Registration(image, label):
     # Don't optimize in-place, we would possibly like to run this cell multiple times.
     registration_method.SetInitialTransform(initial_transform, inPlace=False)
 
-    """
+
     final_transform = registration_method.Execute(sitk.Cast(fixed_image, sitk.sitkFloat32),
                                                   sitk.Cast(moving_image, sitk.sitkFloat32))
-    """
+
     #for a minute do an identity transform
-    final_transform = sitk.TranslationTransform(3,[0]*3)
+    #final_transform = sitk.TranslationTransform(3,[0]*3)
     image = sitk.Resample(image, fixed_image, final_transform, sitk.sitkLinear, 0.0,
                                      moving_image.GetPixelID())
 
@@ -215,8 +215,16 @@ def GetMaxShape(list_labels:list):
         reference_size = np.max(tmp,axis=0)
     return tuple(reference_size.astype(int))
 
+def resample_image_to_label(a:str,b:str):
+    image = tio.ScalarImage(a)
+    label = tio.ScalarImage(b)
 
+    resampler = tio.Resample(label)
+    image = resampler(image)
 
+    image_sitk, label_sitk = image.as_sitk(), label.as_sitk()
+
+    return image_sitk, label_sitk
 
 
 #change default to folders
@@ -264,8 +272,15 @@ if __name__ == "__main__":
 
         print(a)
 
+        """
         label = sitk.ReadImage(b)
         image = sitk.ReadImage(a)
+        """
+
+        image, label = resample_image_to_label(a,b)
+
+        label, reference_image = Registration(label, reference_image)
+        image, label = Registration(image, label)
 
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
@@ -279,15 +294,14 @@ if __name__ == "__main__":
         label, reference_image = Resample(label, reference_image)
         image, label = Resample(image, label)
         """
-        
-
         #uncomment the Alignment
-        image,label = Align_by_Offset(image,label,reference_image)
-        #image = Align(image, reference_image)
-        #label = Align(label, reference_image)
-
+        #image,label = Align_by_Offset(image,label,reference_image)
+        image = Align(image, reference_image)
+        label = Align(label, reference_image)
+        
         label = Crop_to_shape(label, reference_image.GetSize())
         image = Crop_to_shape(image, reference_image.GetSize())
+        
 
         #keep filenames for referencing later on
         label_directory = os.path.join(str(save_directory_labels), os.path.basename(list_labels[int(args.split)+i]))
@@ -314,19 +328,21 @@ if __name__ == "__main__":
 
         print(a)
 
-        label = sitk.ReadImage(b)
-        image = sitk.ReadImage(a)
+        #label = sitk.ReadImage(b)
+        #image = sitk.ReadImage(a)
 
-        #label, reference_image = Registration(label, reference_image)
-        #image, label = Registration(image, label)
+        image, label = resample_image_to_label(a,b)
+
+        label, reference_image = Registration(label, reference_image)
+        image, label = Registration(image, label)
 
         image = resample_sitk_image(image, spacing=args.resolution, interpolator='linear')
         label = resample_sitk_image(label, spacing=args.resolution, interpolator='linear')
 
         #uncomment the Alignment
-        image,label = Align_by_Offset(image,label,reference_image)
-        #image = Align(image, reference_image)
-        #label = Align(label, reference_image)
+        #image,label = Align_by_Offset(image,label,reference_image)
+        image = Align(image, reference_image)
+        label = Align(label, reference_image)
 
         label = Crop_to_shape(label, reference_image.GetSize())
         image = Crop_to_shape(image, reference_image.GetSize())
